@@ -313,11 +313,52 @@ a:hover{text-decoration:underline}
 .sub{color:var(--muted);font-size:.88rem}
 
 .price{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:10px;
   background:linear-gradient(135deg,#f7fff9,#fff9eb);
   border:1px solid color-mix(in srgb,var(--primary) 24%,#e2e8f0);
   border-radius:8px;
   padding:10px;
 }
+
+.price div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.price strong{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em}
+.price span{color:var(--muted);font-size:.78rem}
+.price b{font-size:1.08rem;white-space:nowrap}
+.mutedPrice{background:#f8fafc;color:#64748b}
+
+.pricingPanel{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  margin-top:18px;
+  background:linear-gradient(135deg,#f7fff9,#fff9eb);
+  border:1px solid color-mix(in srgb,var(--primary) 24%,#e2e8f0);
+  border-radius:8px;
+  padding:14px;
+  box-shadow:0 10px 26px rgba(16,24,40,.08);
+}
+
+.pricingPanel div{
+  background:rgba(255,255,255,.72);
+  border:1px solid rgba(255,255,255,.8);
+  border-radius:8px;
+  padding:12px;
+}
+
+.pricingPanel span{
+  display:block;
+  color:var(--muted);
+  font-size:.74rem;
+  text-transform:uppercase;
+  font-weight:950;
+  letter-spacing:.08em;
+}
+
+.pricingPanel strong{display:block;margin-top:4px;font-size:1.2rem}
+.pricingPanel p{grid-column:1/-1;margin:0;color:#475569}
 
 .query{
   font-size:.84rem;
@@ -455,7 +496,7 @@ a:hover{text-decoration:underline}
   .wrap{padding:14px}
   .topbar,.toolbar{flex-direction:column;align-items:stretch}
   .navActions{justify-content:space-between}
-  .searchbar,.panel.stats,.results,.metaGrid,.marketGrid{grid-template-columns:1fr}
+  .searchbar,.panel.stats,.results,.metaGrid,.marketGrid,.pricingPanel{grid-template-columns:1fr}
   .searchbar #setSel{grid-column:auto}
   .card{min-height:0}
   .labelPanel{flex-direction:column;align-items:stretch}
