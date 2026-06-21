@@ -1,18 +1,28 @@
-# All Card Comps TS Starter
+# All Card Comps TS Starter (with dist)
 
-This is a TypeScript/Vite starter scaffold based on your current vanilla JS SPA.
+This package includes:
+- source files in `src/`
+- sample data in `public/cards.json`
+- a ready-to-upload static build in `dist/`
 
-## Commands
+## Local dev
 
 ```bash
 npm install
 npm run dev
+```
+
+## Local production preview
+
+```bash
 npm run build
 npm run preview
 ```
 
-## Notes
+## GitHub Pages
 
-- `public/cards.json` contains a tiny sample dataset so the scaffold runs immediately.
-- Replace it with your full exported `cards.json` when you're ready.
-- The current scaffold keeps your existing SPA approach: module split, typed card models, and client-side routing.
+If your repo is `allcardcomps`, the included `vite.config.ts` already uses:
+
+```ts
+base: '/allcardcomps/'
+```

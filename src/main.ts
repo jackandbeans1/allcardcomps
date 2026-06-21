@@ -1,123 +1,34 @@
 import './styles/main.css';
-
 import { applyFilters } from './app/filters';
-import { idFromPath, navigate } from './app/router';
 import { state } from './app/state';
-import { renderDetail } from './app/render/detail';
-import { renderHome } from './app/render/home';
-import { showToast } from './app/render/ui';
-import { copyText } from './services/clipboard';
 import { loadCards } from './services/cards';
 
 const app = document.getElementById('app');
+if (!app) throw new Error('App container not found');
 
-if (!app) {
-  throw new Error('App container not found');
+function render() {
+  const sets = [...new Set(state.cards.map((card) => card.set).filter(Boolean))].sort();
+  const rows = state.filtered;
+  app.innerHTML = `
+    <div class="topbar wrap"><div class="brand"><div class="logo">ACC</div><div>All Card Comps</div></div></div>
+    <div class="wrap">
+      <section class="hero"><h1>Search cards. Open comps.</h1><p>Starter package with included dist build.</p></section>
+      <section class="panel searchShell">
+        <div class="searchbar">
+          <input id="searchInput" type="text" placeholder="Search cards, players, sets, numbers" value="${state.q}" />
+          <select id="setSel"><option value="">All sets</option>${sets.map((value) => `<option value="${value}" ${value === state.set ? 'selected' : ''}>${value}</option>`).join('')}</select>
+        </div>
+      </section>
+      <section class="toolbar"><div><strong>${state.filtered.length}</strong> matches</div></section>
+      <section class="results">${rows.map((card)=>`<article class="card"><div class="title">${card.title ?? ''}</div><div class="sub">${card.year ?? ''} · ${card.set ?? ''} · ${card.number ?? ''}</div><div class="price"><strong>Est. raw market</strong><br>${card.estimatedLowMarketPriceDisplay ?? ''} – ${card.estimatedHighMarketPriceDisplay ?? ''}</div></article>`).join('')}</section>
+    </div>`;
+
+  const searchInput = document.getElementById('searchInput') as HTMLInputElement | null;
+  const setSel = document.getElementById('setSel') as HTMLSelectElement | null;
+  searchInput?.addEventListener('input', () => { state.q = searchInput.value; state.filtered = applyFilters(state); render(); });
+  setSel?.addEventListener('change', () => { state.set = setSel.value; state.filtered = applyFilters(state); render(); });
 }
 
-function syncFiltered(): void {
-  state.filtered = applyFilters(state);
-}
-
-function render(): void {
-  const currentId = idFromPath();
-
-  if (currentId) {
-    const card = state.cards.find((entry) => entry.id === currentId);
-    app.innerHTML = card ? renderDetail(card) : renderHome(state);
-    return;
-  }
-
-  app.innerHTML = renderHome(state);
-}
-
-function updateAndRender(): void {
-  syncFiltered();
-  render();
-}
-
-function bindEvents(): void {
-  document.addEventListener('click', async (event) => {
-    const target = event.target as HTMLElement | null;
-    if (!target) return;
-
-    const link = target.closest('a[data-link]') as HTMLAnchorElement | null;
-    if (link) {
-      event.preventDefault();
-      navigate(link.getAttribute('href') || '/');
-      return;
-    }
-
-    const copyButton = target.closest('[data-copy]') as HTMLElement | null;
-    if (copyButton) {
-      const value = copyButton.getAttribute('data-copy') || '';
-      const ok = await copyText(value);
-      showToast(ok ? 'Copied' : 'Copy failed');
-      return;
-    }
-
-    if (target.id === 'prev' && state.page > 1) {
-      state.page -= 1;
-      render();
-      return;
-    }
-
-    const pages = Math.max(1, Math.ceil(state.filtered.length / state.perPage));
-    if (target.id === 'next' && state.page < pages) {
-      state.page += 1;
-      render();
-    }
-  });
-
-  document.addEventListener('input', (event) => {
-    const target = event.target as HTMLInputElement | null;
-    if (!target) return;
-
-    if (target.id === 'searchInput') {
-      state.q = target.value;
-      state.page = 1;
-      updateAndRender();
-    }
-  });
-
-  document.addEventListener('change', (event) => {
-    const target = event.target as HTMLInputElement | HTMLSelectElement | null;
-    if (!target) return;
-
-    if (target.id === 'setSel') {
-      state.set = target.value;
-      state.page = 1;
-      updateAndRender();
-      return;
-    }
-
-    if (target.id === 'sortSel') {
-      state.sort = target.value as typeof state.sort;
-      state.page = 1;
-      updateAndRender();
-      return;
-    }
-
-    if (target.id in state.filters && 'checked' in target) {
-      state.filters[target.id as keyof typeof state.filters] = target.checked;
-      state.page = 1;
-      updateAndRender();
-    }
-  });
-
-  window.addEventListener('popstate', render);
-}
-
-async function start(): Promise<void> {
-  bindEvents();
-
-  try {
-    state.cards = await loadCards();
-    syncFiltered();
-    render();
-  } catch (error) {
-    app.innerHTML = `<div class="wrap"><div class="panel"><h2>Could not load cards.json</h2><p>${error instanceof Error ? error.message : 'Unknown error'}</p></div></div>`;
-  }
-}
-
-void start();
+loadCards().then((cards) => { state.cards = cards; state.filtered = applyFilters(state); render(); }).catch((error) => {
+  app.innerHTML = `<div class="wrap"><div class="panel"><h2>Could not load cards.json</h2><p>${error instanceof Error ? error.message : 'Unknown error'}</p></div></div>`;
+});

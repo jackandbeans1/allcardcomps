@@ -26,9 +26,6 @@ export interface Card {
   estimatedHighMarketPrice?: number;
   estimatedLowMarketPriceDisplay?: string;
   estimatedHighMarketPriceDisplay?: string;
-  team?: string;
-  parallel?: string;
-  conditionFocus?: string;
 }
 
 export interface CardsResponse {

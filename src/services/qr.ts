@@ -1,6 +1,1 @@
-import type { Card } from '../types/card';
-import { qrImage } from '../app/queries';
-
-export function getQrImage(card: Card): string {
-  return qrImage(card);
-}
+export function getQrUrl(url: string): string { return `https://quickchart.io/qr?text=${encodeURIComponent(url)}&size=220&margin=1&ecLevel=Q`; }
