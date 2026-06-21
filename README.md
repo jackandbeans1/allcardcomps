@@ -1,25 +1,26 @@
-# All Card Comps — Final 130point API Package
+# All Card Comps — 130point Copy + Open Package
 
-This Cloudflare Pages package uses the 130point endpoint you provided:
+This Cloudflare Pages package preserves the site UI and changes 130point behavior to the reliable workflow requested:
+
+1. Copy the exact 130point query from the site.
+2. Open `https://130point.com/search` in a new tab.
+3. Paste the copied query into 130point's search field.
+
+## 130point query format
+
+For the Ohtani card, the copied query is:
 
 ```text
-http://130point.com/api/search/html?q={card}&sort=recent&mp=all
+2023 Topps X Bob Ross The Joy of Baseball Shohei Ohtani 1
 ```
 
-For the Ohtani card, the generated URL is:
+The query deliberately removes `#` and does not append `raw`, `sold`, or `raw sold`.
 
-```text
-http://130point.com/api/search/html?q=2023+Topps+X+Bob+Ross+The+Joy+of+Baseball+Shohei+Ohtani+1&sort=recent&mp=all
-```
+## Other marketplace behavior
 
-## Important 130point rules
-
-- Uses `/api/search/html`.
-- Uses `q=`.
-- Uses `sort=recent`.
-- Uses `mp=all`.
-- Removes `#` from the card number.
-- Uses plus-separated query terms.
-- Does not append `raw`, `sold`, or marketplace words.
+- eBay active raw: `{canonical with #} raw`
+- eBay sold: `{canonical with #}`
+- Google: `{canonical with #}`
+- SportsCardsPro: direct page when known, including the Ohtani base #1 page
 
 Keep your existing `cards.json` in the same deploy folder.
