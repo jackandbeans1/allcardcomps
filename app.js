@@ -19,7 +19,7 @@ function idFromPath(){const m=location.pathname.match(/\/cards\/([^/?#]+?)(?:\.h
 function labelIdFromPath(){const queryId=new URLSearchParams(location.search).get('label');if(queryId)return queryId;const m=location.pathname.match(/\/labels\/([^/?#]+?)(?:\.html)?\/?$/i);return m?decodeURIComponent(m[1]):null}
 function url(c){return`/cards/${encodeURIComponent(c.id)}.html`}
 function labelUrl(c){return`/?label=${encodeURIComponent(c.id)}`}
-function qrTarget(c){return c.url||`https://cards.allcardcomps.com/cards/${c.id}.html`}
+function qrTarget(c){return c.url||`https://allcardcomps.com/cards/${c.id}.html`}
 function qrImg(c){return`https://quickchart.io/qr?text=${encodeURIComponent(qrTarget(c))}&size=220&margin=1&ecLevel=Q`}
 function cardById(id){return S.cards.find(c=>String(c.id)===String(id))}
 function setKey(c){return`${c.year}||${c.set}`}
