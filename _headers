@@ -1,0 +1,11 @@
+/*
+  Cache-Control: no-cache
+
+/app.js
+  Cache-Control: no-cache
+
+/style.css
+  Cache-Control: no-cache
+
+/cards.json
+  Cache-Control: no-cache
