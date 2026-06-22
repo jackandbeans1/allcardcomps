@@ -9,3 +9,6 @@
 
 /cards.json
   Cache-Control: no-cache
+
+/pricing.json
+  Cache-Control: no-cache

@@ -38,3 +38,19 @@ The `Print label` button opens a print-ready label that fits within a standard 3
 The generated card data also preserves Beckett quantity, condition, guide value, collection ID, and source URL.
 
 Keep your existing `cards.json` in the same deploy folder.
+
+## Estimated raw values
+
+The app can load a compact `pricing.json` sidecar before falling back to the built-in estimate logic. Generate it with:
+
+```powershell
+node scripts/generate-pricing.mjs --set "Bob Ross" --limit 25
+```
+
+If a marketplace blocks scripted access, export sold comps to CSV or JSON and run:
+
+```powershell
+node scripts/generate-pricing.mjs --comps sold-comps.csv --source "reviewed sold comps"
+```
+
+CSV headers can include `cardId`, `title`, and `price`. Without `cardId`, the script conservatively matches by player, year, set, card number, and raw-card filters.
