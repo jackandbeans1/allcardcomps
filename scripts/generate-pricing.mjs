@@ -12,14 +12,15 @@ const provider = args.get('provider') || (process.env.SPORTSCARDSPRO_TOKEN ? 'sp
 const sourceName = args.get('source') || (compsFile ? 'local comps export' : provider === 'sportscardspro' ? 'SportsCardsPro API' : '130point sold search');
 
 const raw = JSON.parse(await fs.readFile('cards.json', 'utf8'));
+const existing = await readPricing();
+const prices = { ...(existing.prices || {}) };
 const cards = (raw.cards || []).filter(card => {
   if (idFilter && String(card.id) !== idFilter) return false;
   if (setFilter && !String(card.set || '').toLowerCase().includes(setFilter)) return false;
+  if (args.has('pending-only') && !isPending(card, prices)) return false;
   return true;
 }).slice(0, limit || undefined);
 
-const existing = await readPricing();
-const prices = { ...(existing.prices || {}) };
 const report = [];
 const importedComps = compsFile ? await readComps(compsFile) : null;
 
@@ -43,6 +44,11 @@ console.table(report);
 async function readPricing() {
   try { return JSON.parse(await fs.readFile('pricing.json', 'utf8')); }
   catch { return { prices: {} }; }
+}
+
+function isPending(card, currentPrices) {
+  if (currentPrices[String(card.id)]) return false;
+  return !(card.estimatedLowMarketPriceDisplay && card.estimatedHighMarketPriceDisplay);
 }
 
 async function loadEnv() {
@@ -85,7 +91,11 @@ async function sportsCardsProProduct(id, token) {
 }
 
 async function getJson(url) {
-  const response = await fetch(url, { headers: { 'accept': 'application/json' } });
+  const response = await fetch(url, { headers: {
+    'accept': 'application/json,text/plain,*/*',
+    'accept-language': 'en-US,en;q=0.9',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36'
+  } });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response.json();
 }
@@ -94,7 +104,7 @@ function productMatch(card, product) {
   const text = `${product['product-name'] || ''} ${product['console-name'] || ''}`.toLowerCase();
   const productParallel = bracketedParallel(product['product-name'] || '');
   const wantedParallel = cardParallel(card);
-  if (productParallel && wantedParallel === 'base') return false;
+  if (productParallel && wantedParallel === 'base' && !setContainsVariant(card, productParallel)) return false;
   if (productParallel && wantedParallel !== 'base' && productParallel !== wantedParallel) return false;
   const probe = { title: text, price: 1 };
   return classify(card, probe).accepted;
@@ -112,6 +122,11 @@ function cardParallel(card) {
 
 function cleanParallel(value) {
   return String(value || '').replace(/^\[(.*)\]$/, '$1').trim().toLowerCase() || 'base';
+}
+
+function setContainsVariant(card, variant) {
+  const set = String(card.set || '').toLowerCase();
+  return variant.split(/\s+/).every(part => set.includes(part));
 }
 
 function estimateFromRawApi(card, product) {
@@ -288,7 +303,7 @@ function classify(card, comp) {
   if (/\b(lot|bundle|pick your|you pick|repack|break|case|box)\b/i.test(text)) return { accepted: false, reason: 'lot-or-sealed' };
   if (player && !player.split(/\s+/).every(part => text.includes(part))) return { accepted: false, reason: 'player-mismatch' };
   if (year && !text.includes(year)) return { accepted: false, reason: 'year-mismatch' };
-  if (num && !new RegExp(`(^|[^0-9a-z])#?${escapeRegExp(num)}([^0-9a-z]|$)`, 'i').test(text)) return { accepted: false, reason: 'number-mismatch' };
+  if (num && !numberMatches(text, num)) return { accepted: false, reason: 'number-mismatch' };
   if (setTokens.length && setTokens.filter(t => text.includes(t)).length < Math.min(2, setTokens.length)) return { accepted: false, reason: 'set-mismatch' };
   if (!card.autograph && /\b(auto|autograph|signed)\b/i.test(text)) return { accepted: false, reason: 'auto-mismatch' };
   if (!card.memorabilia && /\b(relic|patch|jersey|bat)\b/i.test(text)) return { accepted: false, reason: 'relic-mismatch' };
@@ -341,4 +356,12 @@ function escapeRegExp(value) {
 
 function pause(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function numberMatches(text, num) {
+  if (new RegExp(`(^|[^0-9a-z])#?${escapeRegExp(num)}([^0-9a-z]|$)`, 'i').test(text)) return true;
+  const compactText = String(text || '').toLowerCase().replace(/[^0-9a-z]+/g, '');
+  const compactNum = String(num || '').toLowerCase().replace(/[^0-9a-z]+/g, '');
+  const mixedAlphaNumeric = /[a-z]/.test(compactNum) && /\d/.test(compactNum);
+  return mixedAlphaNumeric && compactNum.length > 3 && compactText.includes(compactNum);
 }

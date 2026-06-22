@@ -59,6 +59,12 @@ Then run:
 node scripts/generate-pricing.mjs --provider sportscardspro --id 26391567
 ```
 
+To fill only cards that would otherwise show `Pending comps`, run a capped batch:
+
+```powershell
+node scripts/generate-pricing.mjs --provider sportscardspro --pending-only --limit 100
+```
+
 If a marketplace blocks scripted access, export sold comps to CSV or JSON and run:
 
 ```powershell
