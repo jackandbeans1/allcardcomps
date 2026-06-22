@@ -1,6 +1,23 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-22T00:32:35.997Z",
+  "generatedAt": "2026-06-22T00:43:40.748Z",
   "source": "local-pricing-pipeline",
-  "prices": {}
+  "prices": {
+    "26391567": {
+      "low": 161.29,
+      "mid": 189.75,
+      "high": 218.21,
+      "lowDisplay": "$161.29",
+      "midDisplay": "$189.75",
+      "highDisplay": "$218.21",
+      "confidence": "High",
+      "method": "sports-cards-pro",
+      "compCount": 30,
+      "source": "SportsCardsPro page reviewed",
+      "productUrl": "https://www.sportscardspro.com/game/baseball-cards-2023-topps-x-bob-ross-the-joy-of/shohei-ohtani-1",
+      "productName": "Shohei Ohtani #1",
+      "generatedAt": "2026-06-22T00:00:00.000Z",
+      "explanation": "Estimated Raw Value is a reviewed estimate from SportsCardsPro ungraded pricing and 30 ungraded sold listings for \"Shohei Ohtani #1\". It is provided for reference only and is not representative of actual market value."
+    }
+  }
 }

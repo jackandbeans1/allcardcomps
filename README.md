@@ -47,6 +47,18 @@ The app can load a compact `pricing.json` sidecar before falling back to the bui
 node scripts/generate-pricing.mjs --set "Bob Ross" --limit 25
 ```
 
+For SportsCardsPro API pricing, create a local `.env` file that is never committed:
+
+```env
+SPORTSCARDSPRO_TOKEN=your_token_here
+```
+
+Then run:
+
+```powershell
+node scripts/generate-pricing.mjs --provider sportscardspro --id 26391567
+```
+
 If a marketplace blocks scripted access, export sold comps to CSV or JSON and run:
 
 ```powershell

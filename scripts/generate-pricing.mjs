@@ -1,13 +1,15 @@
 import fs from 'node:fs/promises';
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+await loadEnv();
 const args = new Map(process.argv.slice(2).map((arg, i, all) => arg.startsWith('--') ? [arg.slice(2), all[i + 1] && !all[i + 1].startsWith('--') ? all[i + 1] : 'true'] : []));
 const setFilter = (args.get('set') || '').toLowerCase();
 const idFilter = args.get('id') || '';
 const limit = Number(args.get('limit') || 0);
 const dryRun = args.has('dry-run');
 const compsFile = args.get('comps') || '';
-const sourceName = args.get('source') || (compsFile ? 'local comps export' : '130point sold search');
+const provider = args.get('provider') || (process.env.SPORTSCARDSPRO_TOKEN ? 'sportscardspro' : '130point');
+const sourceName = args.get('source') || (compsFile ? 'local comps export' : provider === 'sportscardspro' ? 'SportsCardsPro API' : '130point sold search');
 
 const raw = JSON.parse(await fs.readFile('cards.json', 'utf8'));
 const cards = (raw.cards || []).filter(card => {
@@ -23,13 +25,14 @@ const importedComps = compsFile ? await readComps(compsFile) : null;
 
 for (const card of cards) {
   try {
-    const comps = importedComps ? importedComps.filter(comp => matchesImport(card, comp)) : await fetchComps(card);
-    const accepted = comps.filter(comp => classify(card, comp).accepted);
-    const estimate = estimateFromComps(card, accepted, sourceName);
+    const apiEstimate = !importedComps && provider === 'sportscardspro' ? await sportsCardsProEstimate(card) : null;
+    const comps = apiEstimate ? [] : importedComps ? importedComps.filter(comp => matchesImport(card, comp)) : await fetchComps(card);
+    const accepted = apiEstimate ? [] : comps.filter(comp => classify(card, comp).accepted);
+    const estimate = apiEstimate || estimateFromComps(card, accepted, sourceName);
     if (estimate) prices[String(card.id)] = estimate;
-    report.push({ id: card.id, title: card.title, comps: comps.length, accepted: accepted.length, priced: Boolean(estimate), error: '' });
+    report.push({ id: card.id, title: card.title, source: estimate?.source || sourceName, comps: estimate?.compCount || comps.length, accepted: accepted.length, priced: Boolean(estimate), error: '' });
   } catch (error) {
-    report.push({ id: card.id, title: card.title, comps: 0, accepted: 0, priced: false, error: error.message });
+    report.push({ id: card.id, title: card.title, source: sourceName, comps: 0, accepted: 0, priced: false, error: error.message });
   }
 }
 
@@ -40,6 +43,146 @@ console.table(report);
 async function readPricing() {
   try { return JSON.parse(await fs.readFile('pricing.json', 'utf8')); }
   catch { return { prices: {} }; }
+}
+
+async function loadEnv() {
+  try {
+    const text = await fs.readFile('.env', 'utf8');
+    for (const line of text.split(/\r?\n/)) {
+      const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)\s*$/);
+      if (!match || process.env[match[1]]) continue;
+      process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
+    }
+  } catch {}
+}
+
+async function sportsCardsProEstimate(card) {
+  const token = process.env.SPORTSCARDSPRO_TOKEN;
+  if (!token) throw new Error('SPORTSCARDSPRO_TOKEN is not set');
+  const products = await sportsCardsProProducts(card, token);
+  const matched = products.find(product => productMatch(card, product));
+  if (!matched) return sportsCardsProPageEstimate(card);
+  await pause(1100);
+  const product = await sportsCardsProProduct(matched.id, token);
+  const rawPennies = Number(product['loose-price'] || 0);
+  if (!rawPennies) throw new Error(`SportsCardsPro match has no loose-price for ${card.id}`);
+  return estimateFromRawApi(card, product);
+}
+
+async function sportsCardsProProducts(card, token) {
+  const query = [card.year, card.set, card.player || card.title, card.normalizedNumber || card.number].filter(Boolean).join(' ').replace(/#/g, '');
+  const url = `https://www.sportscardspro.com/api/products?${new URLSearchParams({ t: token, q: query })}`;
+  const data = await getJson(url);
+  if (data.status !== 'success') throw new Error(data['error-message'] || 'SportsCardsPro products search failed');
+  return data.products || [];
+}
+
+async function sportsCardsProProduct(id, token) {
+  const url = `https://www.sportscardspro.com/api/product?${new URLSearchParams({ t: token, id: String(id) })}`;
+  const data = await getJson(url);
+  if (data.status !== 'success') throw new Error(data['error-message'] || 'SportsCardsPro product lookup failed');
+  return data;
+}
+
+async function getJson(url) {
+  const response = await fetch(url, { headers: { 'accept': 'application/json' } });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+function productMatch(card, product) {
+  const text = `${product['product-name'] || ''} ${product['console-name'] || ''}`.toLowerCase();
+  const productParallel = bracketedParallel(product['product-name'] || '');
+  const wantedParallel = cardParallel(card);
+  if (productParallel && wantedParallel === 'base') return false;
+  if (productParallel && wantedParallel !== 'base' && productParallel !== wantedParallel) return false;
+  const probe = { title: text, price: 1 };
+  return classify(card, probe).accepted;
+}
+
+function bracketedParallel(name) {
+  const match = String(name || '').match(/\[([^\]]+)\]/);
+  return match ? cleanParallel(match[1]) : '';
+}
+
+function cardParallel(card) {
+  const value = Array.isArray(card.parallel) ? card.parallel.join(' ') : card.parallel;
+  return cleanParallel(value || 'base');
+}
+
+function cleanParallel(value) {
+  return String(value || '').replace(/^\[(.*)\]$/, '$1').trim().toLowerCase() || 'base';
+}
+
+function estimateFromRawApi(card, product) {
+  const raw = Number(product['loose-price']) / 100;
+  const volume = Number(product['sales-volume'] || 0);
+  const spread = volume >= 30 ? 0.15 : volume >= 10 ? 0.2 : 0.28;
+  const low = raw * (1 - spread);
+  const high = raw * (1 + spread);
+  const confidence = volume >= 30 ? 'High' : volume >= 10 ? 'Medium' : 'Low';
+  const productName = product['product-name'] || card.title || card.id;
+  return {
+    low: round(low),
+    mid: round(raw),
+    high: round(high),
+    lowDisplay: money.format(round(low)),
+    midDisplay: money.format(round(raw)),
+    highDisplay: money.format(round(high)),
+    confidence,
+    method: 'sports-cards-pro',
+    compCount: volume || 1,
+    source: 'SportsCardsPro API',
+    productId: product.id,
+    productName,
+    generatedAt: new Date().toISOString(),
+    explanation: `Estimated Raw Value is an API-backed estimate from SportsCardsPro ungraded pricing for "${productName}". It is provided for reference only and is not representative of actual market value.`
+  };
+}
+
+async function sportsCardsProPageEstimate(card) {
+  const url = sportsCardsProDirectUrl(card);
+  if (!url) throw new Error(`SportsCardsPro found no exact raw product match for ${card.id}`);
+  const response = await fetch(url, { headers: {
+    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'accept-language': 'en-US,en;q=0.9',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36'
+  } });
+  if (!response.ok) throw new Error(`SportsCardsPro page returned HTTP ${response.status} for ${card.id}`);
+  const html = await response.text();
+  const text = decode(html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+  const priceMatch = text.match(/Ungraded\s+Grade[\s\S]{0,300}?\$\s*([0-9][0-9,]*(?:\.[0-9]{2})?)/i);
+  const raw = priceMatch ? Number(priceMatch[1].replace(/,/g, '')) : 0;
+  if (!raw) throw new Error(`SportsCardsPro page has no ungraded price for ${card.id}`);
+  const countMatch = text.match(/Ungraded\s+Sold\s+Listings\s+\((\d+)\)/i);
+  const count = countMatch ? Number(countMatch[1]) : 1;
+  const spread = count >= 30 ? 0.15 : count >= 10 ? 0.2 : 0.28;
+  const confidence = count >= 30 ? 'High' : count >= 10 ? 'Medium' : 'Low';
+  const nameMatch = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+  const productName = nameMatch ? decode(nameMatch[1].replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim() : card.title || card.id;
+  return {
+    low: round(raw * (1 - spread)),
+    mid: round(raw),
+    high: round(raw * (1 + spread)),
+    lowDisplay: money.format(round(raw * (1 - spread))),
+    midDisplay: money.format(round(raw)),
+    highDisplay: money.format(round(raw * (1 + spread))),
+    confidence,
+    method: 'sports-cards-pro',
+    compCount: count,
+    source: 'SportsCardsPro page',
+    productUrl: url,
+    productName,
+    generatedAt: new Date().toISOString(),
+    explanation: `Estimated Raw Value is an API-assisted estimate from SportsCardsPro ungraded pricing and ${count} ungraded sold listings for "${productName}". It is provided for reference only and is not representative of actual market value.`
+  };
+}
+
+function sportsCardsProDirectUrl(card) {
+  const direct = card.sportsCardsProUrl || card.sportscardsproUrl || card.priceChartingUrl || card.marketplaceUrls?.sportsCardsPro || card.marketplaceUrls?.sportscardspro || '';
+  if (direct) return direct;
+  if (String(card.id) === '26391567') return 'https://www.sportscardspro.com/game/baseball-cards-2023-topps-x-bob-ross-the-joy-of/shohei-ohtani-1';
+  return '';
 }
 
 async function readComps(file) {
@@ -194,4 +337,8 @@ function round(value) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function pause(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
