@@ -389,6 +389,14 @@ a:hover{text-decoration:underline}
   letter-spacing:.08em;
 }
 .edgeHead strong{font-size:1.28rem}
+.edgeHead em{
+  margin-left:6px;
+  color:#0f766e;
+  font-style:normal;
+  font-size:.68rem;
+  text-transform:none;
+  letter-spacing:0;
+}
 .edgeAskForm{
   display:grid;
   grid-template-columns:minmax(0,1fr) auto;

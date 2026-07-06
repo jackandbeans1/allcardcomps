@@ -1,11 +1,11 @@
 /*
-  Cache-Control: no-cache
+  Cache-Control: no-store
 
 /app.js
-  Cache-Control: no-cache
+  Cache-Control: no-store
 
 /style.css
-  Cache-Control: no-cache
+  Cache-Control: no-store
 
 /cards.json
   Cache-Control: no-cache
