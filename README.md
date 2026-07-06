@@ -45,6 +45,8 @@ Cloudflare Pages serves `functions/api/evaluate.js` at `/api/evaluate`. The card
 
 The first version is deliberately conservative: it uses `pricing.json` or existing market-value fields, reports market-signal strength, and only calculates discount/edge when an active ask is supplied to the endpoint.
 
+Card pages include an Active Ask input in the Edge panel. Enter a current listing price, and the page re-runs `/api/evaluate?id=...&ask=...` to calculate discount and verdict. The ask is stored locally in the browser per card.
+
 ## Estimated raw values
 
 The app can load a compact `pricing.json` sidecar before falling back to the built-in estimate logic. Generate it with:
