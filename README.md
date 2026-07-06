@@ -39,6 +39,12 @@ The generated card data also preserves Beckett quantity, condition, guide value,
 
 Keep your existing `cards.json` in the same deploy folder.
 
+## Edge evaluation
+
+Cloudflare Pages serves `functions/api/evaluate.js` at `/api/evaluate`. The card detail page calls it by card ID and renders an Edge panel below Estimated Raw Value.
+
+The first version is deliberately conservative: it uses `pricing.json` or existing market-value fields, reports market-signal strength, and only calculates discount/edge when an active ask is supplied to the endpoint.
+
 ## Estimated raw values
 
 The app can load a compact `pricing.json` sidecar before falling back to the built-in estimate logic. Generate it with:

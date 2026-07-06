@@ -360,6 +360,58 @@ a:hover{text-decoration:underline}
 .pricingPanel strong{display:block;margin-top:4px;font-size:1.2rem}
 .pricingPanel p{grid-column:1/-1;margin:0;color:#475569}
 
+.edgePanel{
+  margin-top:14px;
+  padding:16px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-left:5px solid #94a3b8;
+  border-radius:8px;
+  box-shadow:0 16px 34px rgba(15,23,42,.08);
+}
+.edgePanel.edge,.edgePanel.strong{border-left-color:#0f9f6e}
+.edgePanel.watch,.edgePanel.fair{border-left-color:#f59e0b}
+.edgePanel.thin,.edgePanel.insufficient{border-left-color:#94a3b8}
+.edgePanel.overpriced{border-left-color:#ef4444}
+.edgeHead{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-end;
+  margin-bottom:12px;
+}
+.edgeHead span,.edgeGrid span{
+  display:block;
+  color:var(--muted);
+  font-size:.74rem;
+  line-height:1.2;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.edgeHead strong{font-size:1.28rem}
+.edgeGrid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+.edgeGrid div{
+  min-height:68px;
+  padding:12px;
+  background:#f8fafc;
+  border:1px solid var(--line);
+  border-radius:8px;
+}
+.edgeGrid strong{
+  display:block;
+  margin-top:5px;
+  font-size:1rem;
+  overflow-wrap:anywhere;
+}
+.edgePanel p{
+  margin:12px 0 0;
+  color:#475569;
+}
+
 .query{
   font-size:.84rem;
   color:#475569;
@@ -496,7 +548,7 @@ a:hover{text-decoration:underline}
   .wrap{padding:14px}
   .topbar,.toolbar{flex-direction:column;align-items:stretch}
   .navActions{justify-content:space-between}
-  .searchbar,.panel.stats,.results,.metaGrid,.marketGrid,.pricingPanel{grid-template-columns:1fr}
+  .searchbar,.panel.stats,.results,.metaGrid,.marketGrid,.pricingPanel,.edgeGrid{grid-template-columns:1fr}
   .searchbar #setSel{grid-column:auto}
   .card{min-height:0}
   .labelPanel{flex-direction:column;align-items:stretch}
