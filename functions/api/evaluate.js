@@ -80,6 +80,8 @@ function evaluateCard(card, market, activeAsk) {
       marketRange: "Pending comps",
       lowestActiveAsk: activeAsk ? money(activeAsk) : "N/A",
       discountPercent: "N/A",
+      recommendedBuyPrice: "N/A",
+      recommendedListPrice: "N/A",
       confidence: "Low",
       signals: ["No usable raw market estimate is available yet."],
       sources: { market: "Pending comps", activeAsk: "Not connected" }
@@ -107,6 +109,7 @@ function evaluateCard(card, market, activeAsk) {
 
   score = Math.max(0, Math.min(100, Math.round(score)));
   const verdict = verdictFor(score, discount, activeAsk);
+  const recommendations = recommendedPrices(card, market);
   return {
     verdict: verdict.label,
     verdictCode: verdict.code,
@@ -115,10 +118,22 @@ function evaluateCard(card, market, activeAsk) {
     marketRange: `${money(market.low)} - ${money(market.high)}`,
     lowestActiveAsk: activeAsk ? money(activeAsk) : "N/A",
     discountPercent: discount == null ? "N/A" : `${discount.toFixed(1)}%`,
+    recommendedBuyPrice: money(recommendations.buy),
+    recommendedListPrice: money(recommendations.list),
     confidence: market.confidence,
     signals,
     sources: { market: market.source, method: market.method, activeAsk: activeAsk ? "Request input" : "Not connected" }
   };
+}
+
+function recommendedPrices(card, market) {
+  const special = Boolean(card.autograph || card.memorabilia || card.serial || card.printRun);
+  const confidenceDiscount = market.confidence === "High" ? 0.86 : market.confidence === "Medium" ? 0.8 : 0.72;
+  const specialDiscount = special ? 0.94 : 1;
+  const buy = Math.min(market.mid * confidenceDiscount * specialDiscount, market.high * 0.78);
+  const listMultiplier = market.confidence === "High" ? 1.08 : market.confidence === "Medium" ? 1.12 : 1.18;
+  const list = Math.max(market.mid * listMultiplier, market.high * 0.96);
+  return { buy: roundPrice(buy), list: roundPrice(list) };
 }
 
 function verdictFor(score, discount, hasAsk) {
@@ -146,6 +161,13 @@ function number(value) {
 
 function money(value) {
   return value == null ? "N/A" : `$${Number(value).toFixed(2)}`;
+}
+
+function roundPrice(value) {
+  if (!Number.isFinite(value) || value <= 0) return null;
+  if (value < 5) return Math.max(0.25, Math.round(value * 4) / 4);
+  if (value < 50) return Math.round(value);
+  return Math.round(value / 5) * 5;
 }
 
 function json(data, status = 200) {

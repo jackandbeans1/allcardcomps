@@ -47,6 +47,8 @@ The first version is deliberately conservative: it uses `pricing.json` or existi
 
 Card pages include an Active Ask input in the Edge panel. Enter a current listing price, and the page re-runs `/api/evaluate?id=...&ask=...` to calculate discount and verdict. The ask is stored locally in the browser per card. Without an ask, the panel prompts for an ask instead of presenting a buy/sell verdict.
 
+The Edge panel also returns inferred Recommended Buy Price and Recommended List Price values. They are derived from the estimated raw market range, confidence, sales-volume signal, and special-card traits.
+
 ## Estimated raw values
 
 The app can load a compact `pricing.json` sidecar before falling back to the built-in estimate logic. Generate it with:
