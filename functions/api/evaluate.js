@@ -90,7 +90,8 @@ function evaluateCard(card, market, activeAsk) {
 
   const confidenceScore = market.confidence === "High" ? 30 : market.confidence === "Medium" ? 22 : 12;
   const volumeScore = market.compCount >= 30 ? 20 : market.compCount >= 10 ? 14 : market.compCount >= 3 ? 8 : 4;
-  const traitPenalty = (card.autograph ? 4 : 0) + (card.memorabilia ? 3 : 0) + ((card.serial || card.printRun) ? 4 : 0);
+  const specialCard = isSpecialCard(card);
+  const traitPenalty = (card.autograph ? 4 : 0) + (card.memorabilia ? 3 : 0) + (specialCard ? 4 : 0);
   let score = 35 + confidenceScore + volumeScore - traitPenalty;
   let discount = null;
   const signals = [];
@@ -98,14 +99,14 @@ function evaluateCard(card, market, activeAsk) {
   if (activeAsk) {
     discount = ((market.mid - activeAsk) / market.mid) * 100;
     score += Math.max(-25, Math.min(25, discount * 0.8));
-    signals.push(activeAsk < market.low ? "Active ask is below the estimated raw range." : activeAsk <= market.high ? "Active ask is within the estimated raw range." : "Active ask is above the estimated raw range.");
+    signals.push(activeAsk < market.low ? "Asking price is below the estimated raw value range." : activeAsk <= market.high ? "Asking price is within the estimated raw value range." : "Asking price is above the estimated raw value range.");
   } else {
-    signals.push("Enter an active listing price to calculate edge against the estimated raw value above.");
+    signals.push("Enter an asking price to compare it with the estimated raw value above.");
   }
 
   if (market.compCount) signals.push(`${market.compCount} market signal${market.compCount === 1 ? "" : "s"} from ${market.source}.`);
   if (card.rookie) signals.push("Rookie-card flag may improve liquidity.");
-  if (card.autograph || card.memorabilia || card.serial || card.printRun) signals.push("Special traits need exact-match validation before pricing inventory.");
+  if (card.autograph || card.memorabilia || specialCard) signals.push("Special-card traits need exact-match validation before pricing inventory.");
 
   score = Math.max(0, Math.min(100, Math.round(score)));
   const verdict = verdictFor(score, discount, activeAsk);
@@ -117,7 +118,7 @@ function evaluateCard(card, market, activeAsk) {
     marketValue: money(market.mid),
     marketRange: `${money(market.low)} - ${money(market.high)}`,
     lowestActiveAsk: activeAsk ? money(activeAsk) : "N/A",
-    discountPercent: discount == null ? "N/A" : `${discount.toFixed(1)}%`,
+    discountPercent: discount == null ? "N/A" : priceDifference(discount),
     recommendedBuyPrice: money(recommendations.buy),
     recommendedListPrice: money(recommendations.list),
     confidence: market.confidence,
@@ -127,7 +128,7 @@ function evaluateCard(card, market, activeAsk) {
 }
 
 function recommendedPrices(card, market) {
-  const special = Boolean(card.autograph || card.memorabilia || card.serial || card.printRun);
+  const special = Boolean(card.autograph || card.memorabilia || isSpecialCard(card));
   const confidenceDiscount = market.confidence === "High" ? 0.86 : market.confidence === "Medium" ? 0.8 : 0.72;
   const specialDiscount = special ? 0.94 : 1;
   const buy = Math.min(market.mid * confidenceDiscount * specialDiscount, market.high * 0.78);
@@ -138,12 +139,17 @@ function recommendedPrices(card, market) {
 
 function verdictFor(score, discount, hasAsk) {
   if (!hasAsk) {
-    return { label: "Enter Active Ask", code: "thin" };
+    return { label: "Enter Asking Price", code: "thin" };
   }
-  if (discount >= 20 && score >= 70) return { label: "Potential Edge", code: "edge" };
-  if (discount >= 5 && score >= 55) return { label: "Fair Watch", code: "watch" };
-  if (discount < -10) return { label: "Overpriced", code: "overpriced" };
-  return { label: "Fair", code: "fair" };
+  if (discount >= 20 && score >= 70) return { label: "Below Estimate", code: "edge" };
+  if (discount >= 5 && score >= 55) return { label: "Slightly Below Estimate", code: "watch" };
+  if (discount < -10) return { label: "Above Estimate", code: "overpriced" };
+  return { label: "Within Estimate", code: "fair" };
+}
+
+function isSpecialCard(card) {
+  const printRun = number(card.printRun);
+  return Boolean(card.serial || (printRun && printRun > 0));
 }
 
 function canonicalName(card) {
@@ -161,6 +167,12 @@ function number(value) {
 
 function money(value) {
   return value == null ? "N/A" : `$${Number(value).toFixed(2)}`;
+}
+
+function priceDifference(discount) {
+  if (!Number.isFinite(discount)) return "N/A";
+  if (Math.abs(discount) < 0.05) return "Even";
+  return `${Math.abs(discount).toFixed(1)}% ${discount > 0 ? "below" : "above"}`;
 }
 
 function roundPrice(value) {

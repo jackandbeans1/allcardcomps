@@ -39,15 +39,15 @@ The generated card data also preserves Beckett quantity, condition, guide value,
 
 Keep your existing `cards.json` in the same deploy folder.
 
-## Edge evaluation
+## Asking price evaluation
 
-Cloudflare Pages serves `functions/api/evaluate.js` at `/api/evaluate`. The card detail page calls it by card ID and renders an Edge panel below Estimated Raw Value.
+Cloudflare Pages serves `functions/api/evaluate.js` at `/api/evaluate`. The card detail page calls it by card ID and renders an Asking Price panel below Estimated Raw Value.
 
-The first version is deliberately conservative: it uses `pricing.json` or existing market-value fields, reports market-signal strength, and only calculates discount/edge when an active ask is supplied to the endpoint.
+The first version is deliberately conservative: it uses `pricing.json` or existing market-value fields, reports market-signal strength, and only compares against an asking price when one is supplied to the endpoint.
 
-Card pages include an Active Ask input in the Edge panel. Enter a current listing price, and the page re-runs `/api/evaluate?id=...&ask=...` to calculate discount and verdict. The ask is stored locally in the browser per card. Without an ask, the panel prompts for an ask instead of presenting a buy/sell verdict.
+Card pages include an Asking Price input. Enter a current listing price, and the page re-runs `/api/evaluate?id=...&ask=...` to calculate the price difference and verdict. The ask is stored locally in the browser per card. Without an ask, the panel prompts for an ask instead of presenting a buy/sell verdict.
 
-The Edge panel also returns inferred Recommended Buy Price and Recommended List Price values. They are derived from the estimated raw market range, confidence, sales-volume signal, and special-card traits.
+The Asking Price panel also returns inferred Recommended Buy Price and Recommended List Price values. They are derived from the estimated raw market range, confidence, sales-volume signal, and special-card traits.
 
 ## Estimated raw values
 
