@@ -90,7 +90,7 @@ function evaluateCard(card, market, activeAsk) {
 
   const confidenceScore = market.confidence === "High" ? 30 : market.confidence === "Medium" ? 22 : 12;
   const volumeScore = market.compCount >= 30 ? 20 : market.compCount >= 10 ? 14 : market.compCount >= 3 ? 8 : 4;
-  const specialCard = isSpecialCard(card);
+  const specialCard = isSpecialCard(card) || isNamedParallel(card);
   const traitPenalty = (card.autograph ? 4 : 0) + (card.memorabilia ? 3 : 0) + (specialCard ? 4 : 0);
   let score = 35 + confidenceScore + volumeScore - traitPenalty;
   let discount = null;
@@ -106,7 +106,7 @@ function evaluateCard(card, market, activeAsk) {
 
   if (market.compCount) signals.push(`${market.compCount} market signal${market.compCount === 1 ? "" : "s"} from ${market.source}.`);
   if (card.rookie) signals.push("Rookie-card flag may improve liquidity.");
-  if (card.autograph || card.memorabilia || specialCard) signals.push("Special-card traits need exact-match validation before pricing inventory.");
+  if (card.autograph || card.memorabilia || specialCard) signals.push("Confirm comps match this exact card version before pricing.");
 
   score = Math.max(0, Math.min(100, Math.round(score)));
   const verdict = verdictFor(score, discount, activeAsk);
@@ -128,7 +128,7 @@ function evaluateCard(card, market, activeAsk) {
 }
 
 function recommendedPrices(card, market) {
-  const special = Boolean(card.autograph || card.memorabilia || isSpecialCard(card));
+  const special = Boolean(card.autograph || card.memorabilia || isSpecialCard(card) || isNamedParallel(card));
   const confidenceDiscount = market.confidence === "High" ? 0.86 : market.confidence === "Medium" ? 0.8 : 0.72;
   const specialDiscount = special ? 0.94 : 1;
   const buy = Math.min(market.mid * confidenceDiscount * specialDiscount, market.high * 0.78);
@@ -150,6 +150,12 @@ function verdictFor(score, discount, hasAsk) {
 function isSpecialCard(card) {
   const printRun = number(card.printRun);
   return Boolean(card.serial || (printRun && printRun > 0));
+}
+
+function isNamedParallel(card) {
+  const raw = Array.isArray(card.parallel) ? card.parallel.join(" ") : card.parallel;
+  const parallel = clean(raw).replace(/^\[(.*)\]$/, "$1").toLowerCase();
+  return Boolean(parallel && parallel !== "base");
 }
 
 function canonicalName(card) {
