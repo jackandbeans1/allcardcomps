@@ -183,7 +183,7 @@ function pricingIntelligence(card, market, activeAsk, cards, pricingMap, recomme
     opportunityScore: opportunity,
     verdict: verdict.label,
     verdictCode: verdict.code,
-    marketPosition: strongest ? marketPosition(relative, strongest.label) : "No cohort",
+    marketPosition: strongest ? marketPosition(relative, strongest.label) : "No similar priced card found",
     playerDemandScore: demand.score,
     scarcityScore: Math.round(scarcity),
     liquidityScore: Math.round(liquidity),
