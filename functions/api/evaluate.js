@@ -98,7 +98,7 @@ function evaluateCard(card, market, activeAsk) {
     score += Math.max(-25, Math.min(25, discount * 0.8));
     signals.push(activeAsk < market.low ? "Active ask is below the estimated raw range." : activeAsk <= market.high ? "Active ask is within the estimated raw range." : "Active ask is above the estimated raw range.");
   } else {
-    signals.push("No live active-ask feed is connected yet.");
+    signals.push("Enter an active listing price to calculate edge against the estimated raw value above.");
   }
 
   if (market.compCount) signals.push(`${market.compCount} market signal${market.compCount === 1 ? "" : "s"} from ${market.source}.`);
@@ -123,9 +123,7 @@ function evaluateCard(card, market, activeAsk) {
 
 function verdictFor(score, discount, hasAsk) {
   if (!hasAsk) {
-    if (score >= 78) return { label: "Strong Market Signal", code: "strong" };
-    if (score >= 62) return { label: "Usable Market Signal", code: "fair" };
-    return { label: "Thin Market Signal", code: "thin" };
+    return { label: "Enter Active Ask", code: "thin" };
   }
   if (discount >= 20 && score >= 70) return { label: "Potential Edge", code: "edge" };
   if (discount >= 5 && score >= 55) return { label: "Fair Watch", code: "watch" };
