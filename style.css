@@ -380,7 +380,7 @@ a:hover{text-decoration:underline}
   align-items:flex-end;
   margin-bottom:12px;
 }
-.edgeHead span,.edgeGrid span{
+.edgeHead span,.edgeGrid span,.edgeNotes span{
   display:block;
   color:var(--muted);
   font-size:.74rem;
@@ -431,6 +431,24 @@ a:hover{text-decoration:underline}
   margin:12px 0 0;
   color:#475569;
 }
+.edgeNotes{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:12px;
+}
+.edgeNotes div{
+  padding:12px;
+  background:#fbfdff;
+  border:1px solid var(--line);
+  border-radius:8px;
+}
+.edgeNotes ul{
+  margin:8px 0 0;
+  padding-left:18px;
+  color:#334155;
+}
+.edgeNotes li+li{margin-top:6px}
 
 .query{
   font-size:.84rem;
@@ -568,7 +586,7 @@ a:hover{text-decoration:underline}
   .wrap{padding:14px}
   .topbar,.toolbar{flex-direction:column;align-items:stretch}
   .navActions{justify-content:space-between}
-  .searchbar,.panel.stats,.results,.metaGrid,.marketGrid,.pricingPanel,.edgeGrid,.edgeAskForm{grid-template-columns:1fr}
+  .searchbar,.panel.stats,.results,.metaGrid,.marketGrid,.pricingPanel,.edgeGrid,.edgeAskForm,.edgeNotes{grid-template-columns:1fr}
   .searchbar #setSel{grid-column:auto}
   .card{min-height:0}
   .labelPanel{flex-direction:column;align-items:stretch}
