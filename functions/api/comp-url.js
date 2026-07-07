@@ -8,6 +8,11 @@ export async function onRequest(context) {
     const input = request.method === "POST" ? await request.json().catch(() => ({})) : {};
     const rawUrl = new URL(request.url).searchParams.get("url") || input.url || "";
     const itemUrl = validatedEbayUrl(rawUrl);
+    const itemId = extractItemId(itemUrl);
+
+    const apiResult = await fetchEbayShoppingApi(context.env, itemId, itemUrl);
+    if (apiResult) return json(apiResult);
+
     const response = await fetch(itemUrl, {
       headers: {
         "Accept": "text/html,application/xhtml+xml",
@@ -17,7 +22,10 @@ export async function onRequest(context) {
     });
 
     if (!response.ok) {
-      return json({ error: `Could not fetch eBay page (${response.status})`, url: itemUrl }, 502);
+      return json({
+        error: `eBay blocked or refused the page fetch (${response.status}). Paste the visible sold price manually, or add an eBay App ID as EBAY_APP_ID in Cloudflare for API fallback.`,
+        url: itemUrl
+      }, 502);
     }
 
     const html = await response.text();
@@ -28,7 +36,7 @@ export async function onRequest(context) {
 
     return json({
       url: itemUrl,
-      itemId: extractItemId(itemUrl),
+      itemId,
       title: extractTitle(html),
       price,
       priceDisplay: money(price),
@@ -36,6 +44,39 @@ export async function onRequest(context) {
     });
   } catch (error) {
     return json({ error: error.message || "Could not pull comp URL" }, 400);
+  }
+}
+
+async function fetchEbayShoppingApi(env = {}, itemId, itemUrl) {
+  const appId = env.EBAY_APP_ID || env.EBAY_CLIENT_ID || env.EBAY_PRODUCTION_APP_ID;
+  if (!appId || !itemId) return null;
+
+  const api = new URL("https://open.api.ebay.com/shopping");
+  api.searchParams.set("callname", "GetSingleItem");
+  api.searchParams.set("responseencoding", "JSON");
+  api.searchParams.set("appid", appId);
+  api.searchParams.set("siteid", "0");
+  api.searchParams.set("version", "967");
+  api.searchParams.set("ItemID", itemId);
+  api.searchParams.set("IncludeSelector", "Details");
+
+  try {
+    const response = await fetch(api.toString(), { headers: { "Accept": "application/json" } });
+    if (!response.ok) return null;
+    const data = await response.json();
+    const item = data.Item || data.item;
+    const price = number(item?.ConvertedCurrentPrice?.Value || item?.CurrentPrice?.Value);
+    if (!price) return null;
+    return {
+      url: itemUrl,
+      itemId,
+      title: clean(item.Title || ""),
+      price,
+      priceDisplay: money(price),
+      source: "eBay Shopping API"
+    };
+  } catch {
+    return null;
   }
 }
 
