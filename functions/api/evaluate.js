@@ -21,7 +21,7 @@ export async function onRequest(context) {
     const card = id ? cards.find(c => String(c.id) === String(id)) : findByQuery(cards, query);
     if (!card) return json({ error: "Card not found" }, 404);
 
-    const pricingMap = pricingData.prices || {};
+    const pricingMap = { ...(pricingData.prices || {}), ...(await loadOverridePricing(env, card.id)) };
     const pricing = pricingMap[String(card.id)] || null;
     const market = marketValue(card, pricing, cards, pricingMap);
     const evaluation = evaluateCard(card, market, activeAsk, cards, pricingMap);
@@ -34,6 +34,13 @@ export async function onRequest(context) {
   } catch (error) {
     return json({ error: error.message || "Evaluation failed" }, 500);
   }
+}
+
+async function loadOverridePricing(env = {}, id) {
+  const kv = env.COMP_OVERRIDES || env.PRICING_OVERRIDES;
+  if (!kv || !id) return {};
+  const pricing = await kv.get(`pricing:${id}`, "json").catch(() => null);
+  return pricing ? { [String(id)]: pricing } : {};
 }
 
 async function loadJson(env, request, path) {
