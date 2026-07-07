@@ -515,16 +515,10 @@ a:hover{text-decoration:underline}
   border-radius:8px;
 }
 .compGrid strong{display:block;margin-top:5px;font-size:1rem}
-.compSnippet{
+.compStatus{
   margin:12px 0 0;
-  padding:12px;
-  max-height:240px;
-  overflow:auto;
-  background:#0f172a;
-  color:#e2e8f0;
-  border-radius:8px;
-  font-size:.82rem;
-  white-space:pre-wrap;
+  color:var(--muted);
+  line-height:1.5;
 }
 
 .query{
